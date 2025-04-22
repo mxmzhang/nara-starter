@@ -127,6 +127,33 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   ];
 
+  function showEncouragementBubble() {
+    console.log("showing bubble")
+    const messages = [
+      "Great job!",
+      "You're making progress!",
+      "Keep going!",
+      "Well done!",
+      "Fantastic!",
+    ];
+    const message = messages[Math.floor(Math.random() * messages.length)];
+  
+    const bubble = document.createElement("div");
+    bubble.className = "encouragement-bubble";
+    bubble.textContent = message;
+
+    bubble.style.position = "fixed";
+    bubble.style.bottom = "20%";
+    bubble.style.right = "10%";
+  
+    document.body.appendChild(bubble);
+  
+    setTimeout(() => {
+      bubble.remove();
+      console.log("removing bubble")
+    }, 3000);
+  }
+
   function removeAllListeners() {
     hoverListeners.forEach((listener) => {
       document.removeEventListener("mousemove", listener);
@@ -673,6 +700,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (tasks[originalIndex].completed) {
           const deleteButton = taskItem.querySelector(".delete-task");
           if (deleteButton) deleteButton.remove();
+          showEncouragementBubble();
         }
 
         let newPosition = 0;
@@ -949,4 +977,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
     tasksContainer.classList.remove("hidden");
   }
+
+  // Add mood selection UI
+  const moodContainer = document.createElement("div");
+  moodContainer.id = "mood-container";
+  moodContainer.innerHTML = `
+    <h2>Select Your Mood</h2>
+    <div id="mood-options">
+      <button class="mood-button" data-mood="happy">😊</button>
+      <button class="mood-button" data-mood="stressed">😟</button>
+      <button class="mood-button" data-mood="neutral">😐</button>
+    </div>
+    <h3>Mood History</h3>
+    <ul id="mood-history"></ul>
+  `;
+  document.body.appendChild(moodContainer);
+
+  // Function to update mood history
+  function updateMoodHistory() {
+    chrome.storage.local.get("moodHistory", (data) => {
+      const moodHistory = data.moodHistory || [];
+      const moodHistoryList = document.getElementById("mood-history");
+      moodHistoryList.innerHTML = moodHistory
+        .map((entry) => `<li>${entry.date}: ${entry.mood}</li>`)
+        .join("");
+    });
+  }
+
+  // Event listener for mood selection
+  moodContainer.addEventListener("click", (event) => {
+    if (event.target.classList.contains("mood-button")) {
+      const selectedMood = event.target.dataset.mood;
+      const today = new Date().toLocaleDateString();
+
+      chrome.storage.local.get("moodHistory", (data) => {
+        const moodHistory = data.moodHistory || [];
+        moodHistory.push({ date: today, mood: selectedMood });
+        chrome.storage.local.set({ moodHistory }, updateMoodHistory);
+      });
+    }
+  });
+
+  // Initialize mood history on page load
+  updateMoodHistory();
 });
